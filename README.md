@@ -1,5 +1,14 @@
 # Standing-Up-PS360
 #A one-pager architecture plan and maintenance change plan; an Implementation plan + change ticket for standing up PS360
+```mermaid
+classDef db fill:#ffe5e5,stroke:#c53030;
+classDef app fill:#e5ffe5,stroke:#2f855a;
+classDef iface fill:#e5f0ff,stroke:#3182ce;
+
+class SQLP,SQLS db;
+class PSAPP1,PSAPP2 app;
+class HL7IN,HL7OUT iface;
+
 flowchart LR
   %% ZONES
   subgraph Z1[Client Network]
@@ -53,4 +62,12 @@ flowchart LR
   %% DICOM ROUTING
   LBR <--> VIS
   LBR <--> PACS
+
+note right of SQLS
+  Ports:
+  • HTTPS 443 (EHR, Viewer)
+  • HL7 LLP 2575 (ADT/ORM/ORU)
+  • SQL 1433 (Comm4 DB)
+  • DICOM 104/11112 (TLS optional)
+end note
 
