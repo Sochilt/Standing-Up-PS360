@@ -56,3 +56,26 @@ flowchart LR
   %% DICOM routing
   LBR <--> VIS
   LBR <--> PACS
+
+  %% ========= LEGEND =========
+  subgraph LEG["Legend"]
+    L_APP["App tier (green)"]
+    L_HL7["HL7 (blue)"]
+    L_DB["Database (red)"]
+  end
+
+  %% ========= CLASSES =========
+  classDef app fill:#e6f4ea,stroke:#2f855a,stroke-width:1.5,color:#1a4731;
+  classDef hl7 fill:#e6f0ff,stroke:#2b6cb0,stroke-width:1.5,color:#1e3a8a;
+  classDef db  fill:#ffe8e6,stroke:#c53030,stroke-width:1.5,color:#7f1d1d;
+  classDef viewer fill:#f3e8ff,stroke:#6b21a8,stroke-width:1.2,color:#3b0764;
+
+  %% apply classes
+  class PSAPP1,PSAPP2,PSTIER app;
+  class HL7IN,HL7OUT,HIF hl7;
+  class SQLP,SQLS,Z3 db;
+  class VIS,LBR,PACS,VC viewer;
+  class L_APP app;
+  class L_HL7 hl7;
+  class L_DB db;
+
