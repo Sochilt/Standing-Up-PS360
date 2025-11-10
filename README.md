@@ -131,5 +131,99 @@ This diagram shows a reference deployment for **PowerScribe 360 (PS360)** integr
 
 ## Notes for Reviewers
 - This is a reference blueprint; replace AE titles, ports, and channel names with site-specific values.
-- If GitHub doesn’t render Mermaid, confirm the code fence is ```mermaid and the file is `.md`.
+
+```mermaid
+
+flowchart LR
+  %% ========= TITLE =========
+  %% PS360 with Load Balancer/VIP, Health Checks, and Failover
+
+  %% ========= ZONES =========
+  subgraph Z1["Client Network"]
+    R1["Radiologist Workstations / VDI"]
+    DNS["DNS: ps360.myorg.local\n(A record -> VIP)"]
+  end
+
+  subgraph Z2["Clinical App VLAN"]
+    LB["Load Balancer / VIP\nps360.myorg.local\nHTTPS 443"]
+    subgraph PSTIER["PowerScribe 360 App Tier"]
+      APP1["PS360-APP01\n(IIS + Nuance Services)"]
+      APP2["PS360-APP02\n(IIS + Nuance Services)"]
+    end
+
+    subgraph HL7L["HL7 Interface Layer"]
+      HL7IN["HL7 IN: ADT / ORM\nLLP 2575"]
+      HL7OUT["HL7 OUT: ORU\nLLP 2575"]
+    end
+  end
+
+  subgraph Z3["Database VLAN"]
+    SQLP["SQL PRIMARY  (Comm4)\nTCP 1433"]
+    SQLS["SQL SECONDARY (Comm4)\nTCP 1433"]
+  end
+
+  %% ========= CLIENT -> LB =========
+  R1 --> DNS
+  DNS --> LB
+  R1 -- "HTTPS 443" --> LB
+
+  %% ========= LB -> APP NODES =========
+  LB -- "HTTPS 443" --> APP1
+  LB -- "HTTPS 443" --> APP2
+
+  %% ========= APP -> SQL =========
+  APP1 -- "SQL 1433" --> SQLP
+  APP2 -- "SQL 1433" --> SQLP
+  SQLP <-. "AlwaysOn replication (async)" .-> SQLS
+
+  %% ========= HL7 =========
+  HL7IN --> APP1
+  HL7IN --> APP2
+  APP1 --> HL7OUT
+  APP2 --> HL7OUT
+
+  %% ========= HEALTH CHECKS (LB) =========
+  subgraph HC["LB Health Checks (examples)"]
+    HC1["HTTPS GET /radportal/login.aspx\nExpect 200 OK within < 2s"]
+    HC2["TCP 443 open (IIS)"]
+    HC3["Synthetic check: DB connect to Comm4\n(1433)"]
+    HC4["Windows services running\n(Nuance* = Running)"]
+  end
+
+  HC1 -.-> APP1
+  HC2 -.-> APP1
+  HC3 -.-> APP1
+  HC4 -.-> APP1
+
+  HC1 -.-> APP2
+  HC2 -.-> APP2
+  HC3 -.-> APP2
+  HC4 -.-> APP2
+
+  %% ========= DRAIN / FAILOVER ANNOTATIONS =========
+  LB -. "If a health check fails,\nLB marks node Unhealthy and stops new sessions" .- APP1
+  LB -. "Use 'drain' to remove node for maintenance;\nexisting sessions finish, new ones go to healthy node" .- APP2
+
+  %% ========= LEGEND =========
+  subgraph LEG["Legend"]
+    L_LB["Load balancer (orange)"]
+    L_APP["PS360 app tier (green)"]
+    L_HL7["HL7 (blue)"]
+    L_DB["SQL Comm4 (red)"]
+    L_HC["Dashed lines = health check probes"]
+  end
+
+  %% ========= CLASSES =========
+  classDef lb  fill:#fff0da,stroke:#b45309,stroke-width:1.5,color:#7c2d12;
+  classDef app fill:#e6f4ea,stroke:#2f855a,stroke-width:1.5,color:#1a4731;
+  classDef hl7 fill:#e6f0ff,stroke:#2b6cb0,stroke-width:1.5,color:#1e3a8a;
+  classDef db  fill:#ffe8e6,stroke:#c53030,stroke-width:1.5,color:#7f1d1d;
+  classDef note fill:#f8fafc,stroke:#94a3b8,stroke-width:1.0,color:#334155;
+
+  class LB,DNS,L_LB lb;
+  class APP1,APP2,PSTIER,L_APP app;
+  class HL7IN,HL7OUT,HL7L,L_HL7 hl7;
+  class SQLP,SQLS,Z3,L_DB db;
+  class HC,HC1,HC2,HC3,HC4,L_HC note;
+```
 
